@@ -28,4 +28,56 @@ class NewsInfoAdmin(admin.ModelAdmin):
     ordering = ['post_date']
 
 @admin.register(models.TrainingInfo)
-class
+class TrainingInfoAdmin(admin.ModelAdmin):
+    list_display = ('training_id', 'training_org', 'region_id', 'updated_on')
+    ordering = ['updated_on']
+
+@admin.register(models.SearchInfo)
+class SearchInfoAdmin(admin.ModelAdmin):
+    list_display = ('search_id', 'contact_person', 'search_status', 'created_on')
+    ordering = ['created_on']
+
+@admin.register(models.CompanyInfo)
+class CompanyInfoAdmin(admin.ModelAdmin):
+    list_display = ('company_id', 'company_name', 'contact_person', 'contact_tel', 'company_status', 'created_on')
+    ordering = ['company_id']
+
+@admin.register(models.JobInfo)
+class JobInfoAdmin(admin.ModelAdmin):
+    list_display = ('job_id', 'company_id', 'jobtype_id', 'region_id', 'job_name', 'job_status')
+    ordering = ['job_id']
+
+@admin.register(models.JobApply)
+class JobApplyAdmin(admin.ModelAdmin):
+    list_display = ('user_id', 'job_id', 'created_on', 'apply_status')
+    ordering = ['user_id']
+
+@admin.register(models.JobFavor)
+class JobFavorAdmin(admin.ModelAdmin):
+    list_display = ('user_id', 'job_id', 'created_on')
+    ordering = ['user_id']
+
+@admin.register(models.BenefitList)
+class BenefitListAdmin(admin.ModelAdmin):
+    list_display = ('benefit_id', 'benefit_desc')
+    ordering = ['benefit_id']
+
+@admin.register(models.SalaryList)
+class SalaryListAdmin(admin.ModelAdmin):
+    list_display = ('salary_id', 'salary_type', 'salary_upper', 'salary_lower')
+    ordering = ['salary_type', 'salary_upper']
+
+@admin.register(models.CourseType)
+class CourseTypeAdmin(admin.ModelAdmin):
+    list_display = ('ctype_id', 'ctype_desc')
+    ordering = ['ctype_id']
+
+@admin.register(models.CourseInfo)
+class CourseInfoAdmin(admin.ModelAdmin):
+    list_display = ('course_id', 'course_title', 'ctype_id', 'course_form','updated_on')
+    ordering = ['ctype_id','updated_on']
+
+@admin.register(models.JobVacancyInfo)
+class JobVacancyInfoAdmin(admin.ModelAdmin):
+    list_display = ('vacancy_id', 'user_id', 'jobtype_id', 'region_id', 'updated_on', 'vacancy_status')
+    ordering = ['updated_on']
