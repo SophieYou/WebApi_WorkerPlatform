@@ -20,9 +20,11 @@ from django_filters.rest_framework import DjangoFilterBackend
 class CustomAuthToken(ObtainAuthToken):
 
     def post(self, request, *args, **kwargs):
-        login_type = request.data['login_type']
-        print("login type: " + login_type)
+        login_type = 'backend'
+        if 'login_type' in request.data:
+            login_type = request.data['login_type']
 
+        print("login type: " + login_type)
         serializer = self.serializer_class(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
@@ -33,11 +35,15 @@ class CustomAuthToken(ObtainAuthToken):
                 'token': token.key,
                 'user_id': u_id
             })
-        else:
+        elif login_type == 'company':
             c_id = ClassWithGlobalFunction.get_companyid(user)
             return Response({
                 'token': token.key,
                 'comp_id': c_id
+            })
+        else:
+            return Response({
+                'token': token.key
             })
 
 
