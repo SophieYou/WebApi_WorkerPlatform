@@ -21,30 +21,31 @@ class CustomAuthToken(ObtainAuthToken):
 
     def post(self, request, *args, **kwargs):
         login_type = 'backend'
-        if 'login_type' in request.data:
-            login_type = request.data['login_type']
+        if 'data' in request:
+            if 'login_type' in request.data:
+                login_type = request.data['login_type']
 
-        print("login type: " + login_type)
-        serializer = self.serializer_class(data=request.data, context={'request': request})
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data['user']
-        token, created = Token.objects.get_or_create(user=user)
-        if login_type == 'worker':
-            u_id = ClassWithGlobalFunction.get_userid(user)
-            return Response({
-                'token': token.key,
-                'user_id': u_id
-            })
-        elif login_type == 'company':
-            c_id = ClassWithGlobalFunction.get_companyid(user)
-            return Response({
-                'token': token.key,
-                'comp_id': c_id
-            })
-        else:
-            return Response({
-                'token': token.key
-            })
+            print("login type: " + login_type)
+            serializer = self.serializer_class(data=request.data, context={'request': request})
+            serializer.is_valid(raise_exception=True)
+            user = serializer.validated_data['user']
+            token, created = Token.objects.get_or_create(user=user)
+            if login_type == 'worker':
+                u_id = ClassWithGlobalFunction.get_userid(user)
+                return Response({
+                    'token': token.key,
+                    'user_id': u_id
+                })
+            elif login_type == 'company':
+                c_id = ClassWithGlobalFunction.get_companyid(user)
+                return Response({
+                    'token': token.key,
+                    'comp_id': c_id
+                })
+            else:
+                return Response({
+                    'token': token.key
+                })
 
 
 

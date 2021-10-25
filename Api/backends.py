@@ -7,8 +7,9 @@ class CustomAuthBackend(ModelBackend):
     def authenticate(self, request, username=None, password=None, **kwargs):
         user = User.objects.get(username=username)
         v_code = False
-        if 'verify_code' in request.data:
-            v_code = request.data["verify_code"]
+        if 'data' in request:
+            if 'verify_code' in request.data:
+                v_code = request.data["verify_code"]
 
         print("verify code is " + str(v_code))
         print("user is " + user.username)
