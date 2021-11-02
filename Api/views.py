@@ -63,15 +63,25 @@ class RegisterUserViewSet(viewsets.ModelViewSet):
         u_tel = request.data["user_tel"]
         print('register tel: ' + u_tel)
         u_pwd = None
+        u_check = False
         try:
             u_pwd = request.data["user_pwd"]
             print('register password: ' + u_pwd)
         except:
             pass
+
+        try:
+            u_check = request.data["check"]
+            print('check telephone')
+        except:
+            pass
+
         user = self.queryset.filter(user_tel=u_tel)
 
         if user.exists():
             return Response({'Fail: This telephone has been registered'}, status=status.HTTP_302_FOUND)
+        elif u_check:
+            return Response({'This telephone has not been registered'}, status=status.HTTP_200_OK)
         else:
             u_user = models.User.objects.create(username=u_tel)
             if u_pwd and u_user:
