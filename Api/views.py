@@ -1,6 +1,8 @@
 #  from django.shortcuts import render
+import datetime
 
 from django.db.models import Count, Q
+from django.forms import model_to_dict
 from django.http import JsonResponse, HttpResponse
 from rest_framework import viewsets, status, views
 from rest_framework.response import Response
@@ -172,23 +174,27 @@ class JobSearchViewSet(viewsets.ModelViewSet):
         salary_type = None
         salary_upper = None
         salary_lower = None
-        if 'job_comp_name' in self.request.data:
-            job_comp_name = self.request.data["job_comp_name"]
+        if 'job_comp_name' in self.request.query_params:
+            job_comp_name = self.request.query_params["job_comp_name"]
 
-        if 'jobtype_id' in self.request.data:
-            jobtype_id = self.request.data['jobtype_id']
+        if 'jobtype_id' in self.request.query_params:
+            jobtype_id = self.request.query_params['jobtype_id']
+            if '[' and ']' in jobtype_id:
+                jobtype_id = eval(jobtype_id)
 
-        if 'region_id' in self.request.data:
-            region_id = self.request.data['region_id']
+        if 'region_id' in self.request.query_params:
+            region_id = self.request.query_params['region_id']
+            if '[' and ']' in region_id:
+                region_id = eval(region_id)
 
-        if 'salary_type' in self.request.data:
-            salary_type = self.request.data['salary_type']
+        if 'salary_type' in self.request.query_params:
+            salary_type = self.request.query_params['salary_type']
 
-        if 'salary_upper' in self.request.data:
-            salary_upper = self.request.data['salary_upper']
+        if 'salary_upper' in self.request.query_params:
+            salary_upper = self.request.query_params['salary_upper']
 
-        if 'salary_lower' in self.request.data:
-            salary_lower = self.request.data['salary_lower']
+        if 'salary_lower' in self.request.query_params:
+            salary_lower = self.request.query_params['salary_lower']
 
         m_filter = Q()
         and_filter = Q()
@@ -227,7 +233,16 @@ class JobSearchViewSet(viewsets.ModelViewSet):
             m_filter.add(or_filter, 'AND')
         queryset = models.JobInfo.objects.filter(m_filter).order_by('-post_date')
         return queryset
-
+    '''
+    def create(self, request, *args, **kwargs):
+        
+        # data = list(self.get_queryset().values())
+        # return JsonResponse(data, safe=False)
+        
+        m_serializer = self.serializer_class(self.get_queryset(), many=True, context={'request': request})
+        headers = self.get_success_headers(m_serializer.data)
+        return Response(m_serializer.data, status=status.HTTP_200_OK, headers=headers)
+    '''
 
 # list: all region
 class RegionInfoViewSet(viewsets.ModelViewSet):
@@ -308,10 +323,22 @@ class JobFavorViewSet(viewsets.ModelViewSet):
     # create favor job
     def create(self, request, *args, **kwargs):
         u_id = ClassWithGlobalFunction.get_userid(self.request.user)
-        a_job = models.JobFavor.objects.filter(user_id=u_id, job_id=request.data["job_id"])
+        a_job = models.JobFavor.objects.filter(user_id=u_id, job_id=request.data["job_id"]).values()
         print(a_job)
         if a_job.exists():
-            return Response({'Fail: This job has been added to favoriate'}, status=status.HTTP_302_FOUND)
+            a_obj = models.JobFavor.objects.get(id=a_job[0]['id'])
+            a_obj.is_deleted= False
+            a_obj.created_on= datetime.datetime.now()
+            a_obj.save()
+
+            dict_obj = model_to_dict( a_obj )
+            m_serializer = self.get_serializer(data=dict_obj)
+            m_serializer.is_valid(raise_exception=True)
+
+            headers = self.get_success_headers(m_serializer.data)
+            return Response(m_serializer.data, status=status.HTTP_200_OK, headers=headers)
+
+            #return Response({'Fail: This job has been added to favoriate'}, status=status.HTTP_302_FOUND)
         else:
             request.data['user_id'] = u_id
             m_serializer = self.get_serializer(data=request.data)
@@ -486,18 +513,25 @@ class CompanyJobSearchViewSet(viewsets.ModelViewSet):
         region_id = None
         job_status = None
         c_id = ClassWithGlobalFunction.get_companyid(self.request.user)
+        print(self.request.query_params)
+        if 'job_name' in self.request.query_params:
+            job_name = self.request.query_params["job_name"]
 
-        if 'job_name' in self.request.data:
-            job_name = self.request.data["job_name"]
+        if 'jobtype_id' in self.request.query_params:
+            jobtype_id = self.request.query_params['jobtype_id']
+            if '[' and ']' in jobtype_id:
+                jobtype_id = eval(jobtype_id)
 
-        if 'jobtype_id' in self.request.data:
-            jobtype_id = self.request.data['jobtype_id']
+            print(jobtype_id)
 
-        if 'region_id' in self.request.data:
-            region_id = self.request.data['region_id']
+        if 'region_id' in self.request.query_params:
+            region_id = self.request.query_params['region_id']
+            if '[' and ']' in region_id:
+                region_id = eval(region_id)
+            print(region_id)
 
-        if 'job_status' in self.request.data:
-            job_status = self.request.data['job_status']
+        if 'job_status' in self.request.query_params:
+            job_status = self.request.query_params['job_status']
 
         and_filter = Q()
         and_filter.connector = 'AND'
@@ -536,6 +570,8 @@ class UserAppliedJobSearchViewSet(viewsets.ModelViewSet):
 
         if 'jobtype_id' in self.request.data:
             jobtype_id = self.request.data['jobtype_id']
+            if '[' and ']' in jobtype_id:
+                jobtype_id = eval(jobtype_id)
 
         and_filter = Q()
         and_filter.connector = 'AND'
