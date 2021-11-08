@@ -567,16 +567,21 @@ class UserAppliedJobSearchViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         job_name = None
         jobtype_id = None
+        apply_status = None
         c_id = ClassWithGlobalFunction.get_companyid(self.request.user)
 
 
-        if 'job_name' in self.request.data:
-            job_name = self.request.data["job_name"]
+        if 'job_name' in self.request.query_params:
+            job_name = self.request.query_params["job_name"]
 
-        if 'jobtype_id' in self.request.data:
-            jobtype_id = self.request.data['jobtype_id']
+        if 'jobtype_id' in self.request.query_params:
+            jobtype_id = self.request.query_params['jobtype_id']
             if '[' and ']' in jobtype_id:
                 jobtype_id = eval(jobtype_id)
+
+        if 'apply_status' in self.request.query_params:
+            apply_status = self.request.query_params['apply_status']
+
 
         and_filter = Q()
         and_filter.connector = 'AND'
@@ -589,7 +594,18 @@ class UserAppliedJobSearchViewSet(viewsets.ModelViewSet):
             print('jobtype id: ', jobtype_id)
             and_filter.children.append(('jobtype_id__in', jobtype_id))
 
-        qy = models.JobInfo.objects.filter(and_filter).values_list('job_id')
 
-        queryset = models.JobApply.objects.filter(job_id__in=qy).order_by('-created_on')
+        print(and_filter)
+        qy = models.JobInfo.objects.filter(and_filter).values_list('job_id')
+        print(qy)
+
+        and_filter = Q()
+        and_filter.connector = 'AND'
+        and_filter.children.append(('job_id__in', qy))
+
+        if apply_status:
+            print('apply status: ', apply_status)
+            and_filter.children.append(('apply_status', apply_status))
+
+        queryset = models.JobApply.objects.filter(and_filter).order_by('-created_on')
         return queryset
