@@ -1,6 +1,5 @@
 from . import models
 
-
 # global function
 class ClassWithGlobalFunction:
 
@@ -27,3 +26,5 @@ class ClassWithGlobalFunction:
                 return None
         else:
             return None
+
+

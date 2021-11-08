@@ -13,6 +13,7 @@ from . import models
 from .utils import ClassWithGlobalFunction
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
+from rest_framework import pagination
 
 from django_filters.rest_framework import DjangoFilterBackend
 
@@ -121,6 +122,8 @@ class JobtypeDetailViewSet(viewsets.ModelViewSet):
     queryset = models.JobtypeDetail.objects.all().order_by('jobtype_upper')
     serializer_class = serializer.JobtypeDetailSerializer
     permission_classes = (permissions.AllowAny,)
+    pagination.PageNumberPagination.page_size = 1000
+
 
 
 # list: news info
@@ -249,6 +252,7 @@ class RegionInfoViewSet(viewsets.ModelViewSet):
     queryset = models.RegionInfo.objects.all().order_by('region_upper')
     serializer_class = serializer.RegionInfoSerializer
     permission_classes = (permissions.AllowAny,)
+    pagination.PageNumberPagination.page_size = 1000
 
 
 # list: all salary
@@ -256,6 +260,7 @@ class SalaryListViewSet(viewsets.ModelViewSet):
     queryset = models.SalaryList.objects.all().order_by('salary_type', 'salary_lower')
     serializer_class = serializer.SalaryListSerializer
     permission_classes = (permissions.AllowAny,)
+    pagination.PageNumberPagination.page_size = 1000
 
 
 # list: all benefit
