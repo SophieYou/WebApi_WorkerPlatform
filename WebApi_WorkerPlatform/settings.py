@@ -23,9 +23,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-9r3nd#pm6vm9g0!272b7!h%sqr3-xcd0qv$&hf(8+nu(=maa3#'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = ["*"] # Add * here
+ALLOWED_HOSTS = [host.strip() for host in os.environ.get("ALLOWED_HOSTS", "*").split(',')]
+
+ALLOWED_HOSTS += [gethostname(), gethostbyname(gethostname())]
 
 
 # Application definition
@@ -81,11 +83,11 @@ WSGI_APPLICATION = 'WebApi_WorkerPlatform.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'WorkerPlatform1',
-        'USER': 'postgres',
-        'PASSWORD': 'init1234',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': os.environ.get('RDS_NAME', 'WorkerPlatform1'),
+        'USER': os.environ.get('RDS_USERNAME', 'postgres'),
+        'PASSWORD': os.environ.get('RDS_PASSWORD', 'init1234'),
+        'HOST': os.environ.get('RDS_HOSTNAME', '127.0.0.1'),
+        'PORT': os.environ.get('RDS_PORT', '5432'),
     }
 }
 
