@@ -65,6 +65,7 @@ class NewsInfo(models.Model):
     post_date = models.DateField(auto_now=True)
     url_cover = models.ImageField(upload_to='news',null=True)
 
+
     def __str__(self):
         return self.news_title
 

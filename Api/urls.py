@@ -33,4 +33,5 @@ urlpatterns = [
     path('api-token-auth/', views.CustomAuthToken.as_view()),
     path('media/<path:file_name>', views.get_media)
 
+
 ]

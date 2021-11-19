@@ -614,6 +614,7 @@ class UserAppliedJobSearchViewSet(viewsets.ModelViewSet):
         return queryset
 
 
+
 # open image
 def get_file(file_name):
     resp = HttpResponse()
