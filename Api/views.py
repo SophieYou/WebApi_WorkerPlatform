@@ -1,6 +1,9 @@
 #  from django.shortcuts import render
 import datetime
+import hashlib
+import mimetypes
 
+from django.core.files.storage import default_storage
 from django.db.models import Count, Q
 from django.forms import model_to_dict
 from django.http import JsonResponse, HttpResponse
@@ -609,3 +612,37 @@ class UserAppliedJobSearchViewSet(viewsets.ModelViewSet):
 
         queryset = models.JobApply.objects.filter(and_filter).order_by('-created_on')
         return queryset
+
+
+# open image
+def get_file(file_name):
+    resp = HttpResponse()
+    f = None
+    try:
+        print(file_name)
+        f = default_storage.open(file_name, 'rb+')
+    except:
+        print('error in open')
+        return resp
+
+    content_type, _ = mimetypes.guess_type(file_name)
+    if content_type is None:
+        content_type = "application/octet-stream"
+
+    md5 = hashlib.md5()
+    resp["content-type"] = content_type
+    for c in f.chunks():
+        resp.write(c)
+        md5.update(c)
+    f.close()
+    resp["ETag"] = f'"{md5.hexdigest()}"'
+    try:
+        resp["Last-Modified"] = default_storage.get_modified_time(file_name).strftime('%a, %d %b %Y %H:%M:%S GMT')
+    except Exception as e:
+        pass
+    return resp
+
+
+def get_media(request, file_name):
+    resp = get_file(file_name)
+    return resp

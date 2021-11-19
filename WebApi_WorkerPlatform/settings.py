@@ -58,6 +58,8 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'WebApi_WorkerPlatform.urls'
+MEDIA_ROOT = './media/'
+MEDIA_URL = '/media/'
 
 TEMPLATES = [
     {

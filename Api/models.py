@@ -63,7 +63,7 @@ class NewsInfo(models.Model):
     news_overview = models.CharField(max_length=40)
     news_detail = models.TextField()
     post_date = models.DateField(auto_now=True)
-    url_cover = models.TextField()
+    url_cover = models.ImageField(upload_to='news',null=True)
 
     def __str__(self):
         return self.news_title
@@ -110,8 +110,8 @@ class CompanyInfo(models.Model):
     company_detail = models.TextField()
     company_status = models.BooleanField(default=False)
     company_remarks = models.TextField(null=True)
-    url_logo = models.TextField(null=True)
-    url_cert = models.TextField()
+    url_logo = models.ImageField(upload_to='media/logo',null=True)
+    url_cert = models.ImageField(upload_to='media/cert',null=True)
     created_on = models.DateField(auto_now_add=True)
     updated_on = models.DateField(auto_now=True)
 

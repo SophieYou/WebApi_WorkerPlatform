@@ -30,6 +30,7 @@ router.register(r'jobvacancy', views.JobVacancyViewSet, basename='JobVacancyInfo
 urlpatterns = [
     path('', include(router.urls)),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-    path('api-token-auth/', views.CustomAuthToken.as_view())
+    path('api-token-auth/', views.CustomAuthToken.as_view()),
+    path('media/<path:file_name>', views.get_media)
 
 ]
