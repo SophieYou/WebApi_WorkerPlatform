@@ -111,8 +111,8 @@ class CompanyInfo(models.Model):
     company_detail = models.TextField()
     company_status = models.BooleanField(default=False)
     company_remarks = models.TextField(null=True)
-    url_logo = models.ImageField(upload_to='media/logo',null=True)
-    url_cert = models.ImageField(upload_to='media/cert',null=True)
+    url_logo = models.ImageField(upload_to='logo',null=True)
+    url_cert = models.ImageField(upload_to='cert',null=True)
     created_on = models.DateField(auto_now_add=True)
     updated_on = models.DateField(auto_now=True)
 
