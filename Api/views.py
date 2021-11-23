@@ -625,6 +625,7 @@ def get_file(file_name):
     f = None
     try:
         print(file_name)
+        logger.info('open file: '+ file_name)
         f = default_storage.open(file_name, 'rb+')
     except Exception as e:
         logger.error(e)
