@@ -4,10 +4,10 @@ import hashlib
 import mimetypes
 
 from django.core.files.storage import default_storage
-from django.db.models import Count, Q
+from django.db.models import Q
 from django.forms import model_to_dict
-from django.http import JsonResponse, HttpResponse
-from rest_framework import viewsets, status, views
+from django.http import HttpResponse
+from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework import permissions
 
@@ -17,12 +17,13 @@ from .utils import ClassWithGlobalFunction
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from rest_framework import pagination
+import logging
 
-from django_filters.rest_framework import DjangoFilterBackend
+# get a looger object
+logger = logging.getLogger(__name__)
 
 
 # override the token view
-
 class CustomAuthToken(ObtainAuthToken):
 
     def post(self, request, *args, **kwargs):
@@ -31,13 +32,15 @@ class CustomAuthToken(ObtainAuthToken):
         try:
             if 'login_type' in request.data:
                 login_type = request.data['login_type']
-        except:
+        except Exception as e:
+            logger.info(e)
             pass
 
-        print("login type: " + login_type)
-        serializer = self.serializer_class(data=request.data, context={'request': request})
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data['user']
+        logger.info("current login type: " + login_type)
+
+        m_serializer = self.serializer_class(data=request.data, context={'request': request})
+        m_serializer.is_valid(raise_exception=True)
+        user = m_serializer.validated_data['user']
         token, created = Token.objects.get_or_create(user=user)
         if login_type == 'worker':
             u_id = ClassWithGlobalFunction.get_userid(user)
@@ -57,7 +60,6 @@ class CustomAuthToken(ObtainAuthToken):
             })
 
 
-
 # create: new user
 class RegisterUserViewSet(viewsets.ModelViewSet):
     queryset = models.UserProfile.objects.all().order_by('user_id')
@@ -67,26 +69,33 @@ class RegisterUserViewSet(viewsets.ModelViewSet):
     # create a new user(register)
     def create(self, request, *args, **kwargs):
         u_tel = request.data["user_tel"]
-        print('register tel: ' + u_tel)
+        logger.info('register tel: ' + u_tel)
+
         u_pwd = None
         u_check = False
         try:
             u_pwd = request.data["user_pwd"]
-            print('register password: ' + u_pwd)
-        except:
+            logger.info('register password: ' + u_pwd)
+        except Exception as e:
+            logger.info(e)
+            logger.info('register without password')
             pass
 
         try:
             u_check = request.data["check"]
             print('check telephone')
-        except:
+            logger.info('check telephone before register')
+        except Exception as e:
+            logger.info(e)
             pass
 
         user = self.queryset.filter(user_tel=u_tel)
 
         if user.exists():
+            logger.info('Fail: This telephone has been registered')
             return Response({'Fail: This telephone has been registered'}, status=status.HTTP_302_FOUND)
         elif u_check:
+            logger.info('his telephone has not been registered')
             return Response({'This telephone has not been registered'}, status=status.HTTP_200_OK)
         else:
             u_user = models.User.objects.create(username=u_tel)
@@ -126,7 +135,6 @@ class JobtypeDetailViewSet(viewsets.ModelViewSet):
     serializer_class = serializer.JobtypeDetailSerializer
     permission_classes = (permissions.AllowAny,)
     pagination.PageNumberPagination.page_size = 1000
-
 
 
 # list: news info
@@ -239,6 +247,7 @@ class JobSearchViewSet(viewsets.ModelViewSet):
             m_filter.add(or_filter, 'AND')
         queryset = models.JobInfo.objects.filter(m_filter).order_by('-post_date')
         return queryset
+
     '''
     def create(self, request, *args, **kwargs):
         
@@ -249,6 +258,7 @@ class JobSearchViewSet(viewsets.ModelViewSet):
         headers = self.get_success_headers(m_serializer.data)
         return Response(m_serializer.data, status=status.HTTP_200_OK, headers=headers)
     '''
+
 
 # list: all region
 class RegionInfoViewSet(viewsets.ModelViewSet):
@@ -335,18 +345,18 @@ class JobFavorViewSet(viewsets.ModelViewSet):
         print(a_job)
         if a_job.exists():
             a_obj = models.JobFavor.objects.get(id=a_job[0]['id'])
-            a_obj.is_deleted= False
-            a_obj.created_on= datetime.datetime.now()
+            a_obj.is_deleted = False
+            a_obj.created_on = datetime.datetime.now()
             a_obj.save()
 
-            dict_obj = model_to_dict( a_obj )
+            dict_obj = model_to_dict(a_obj)
             m_serializer = self.get_serializer(data=dict_obj)
             m_serializer.is_valid(raise_exception=True)
 
             headers = self.get_success_headers(m_serializer.data)
             return Response(m_serializer.data, status=status.HTTP_200_OK, headers=headers)
 
-            #return Response({'Fail: This job has been added to favoriate'}, status=status.HTTP_302_FOUND)
+            # return Response({'Fail: This job has been added to favoriate'}, status=status.HTTP_302_FOUND)
         else:
             request.data['user_id'] = u_id
             m_serializer = self.get_serializer(data=request.data)
@@ -384,8 +394,7 @@ class RegisterCompanyViewSet(viewsets.ModelViewSet):
         c_tel = request.data["contact_tel"]
         c_email = request.data["contact_email"]
         c_pwd = request.data["company_pwd"]
-        comp = self.queryset.filter(contact_tel=c_tel) \
-               | self.queryset.filter(contact_email=c_email)
+        comp = self.queryset.filter(contact_tel=c_tel) | self.queryset.filter(contact_email=c_email)
         print(comp)
         if comp.exists():
             return Response({'This company (telephone or email) has been registered'}, status=status.HTTP_302_FOUND)
@@ -473,7 +482,6 @@ class JobVacancyViewSet(viewsets.ModelViewSet):
 
 # list: job info by company
 class JobInfoCompanyViewSet(viewsets.ModelViewSet):
-
     permission_classes = (permissions.IsAuthenticated,)
 
     def get_queryset(self):
@@ -573,7 +581,6 @@ class UserAppliedJobSearchViewSet(viewsets.ModelViewSet):
         apply_status = None
         c_id = ClassWithGlobalFunction.get_companyid(self.request.user)
 
-
         if 'job_name' in self.request.query_params:
             job_name = self.request.query_params["job_name"]
 
@@ -585,7 +592,6 @@ class UserAppliedJobSearchViewSet(viewsets.ModelViewSet):
         if 'apply_status' in self.request.query_params:
             apply_status = self.request.query_params['apply_status']
 
-
         and_filter = Q()
         and_filter.connector = 'AND'
         and_filter.children.append(('company_id', c_id))
@@ -596,7 +602,6 @@ class UserAppliedJobSearchViewSet(viewsets.ModelViewSet):
         if jobtype_id:
             print('jobtype id: ', jobtype_id)
             and_filter.children.append(('jobtype_id__in', jobtype_id))
-
 
         print(and_filter)
         qy = models.JobInfo.objects.filter(and_filter).values_list('job_id')
@@ -614,7 +619,6 @@ class UserAppliedJobSearchViewSet(viewsets.ModelViewSet):
         return queryset
 
 
-
 # open image
 def get_file(file_name):
     resp = HttpResponse()
@@ -622,8 +626,9 @@ def get_file(file_name):
     try:
         print(file_name)
         f = default_storage.open(file_name, 'rb+')
-    except:
-        print('error in open')
+    except Exception as e:
+        logger.error(e)
+        logger.error('error in open')
         return resp
 
     content_type, _ = mimetypes.guess_type(file_name)
@@ -640,6 +645,7 @@ def get_file(file_name):
     try:
         resp["Last-Modified"] = default_storage.get_modified_time(file_name).strftime('%a, %d %b %Y %H:%M:%S GMT')
     except Exception as e:
+        logger.error(e)
         pass
     return resp
 
