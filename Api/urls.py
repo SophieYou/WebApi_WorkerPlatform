@@ -23,6 +23,7 @@ router.register(r'userapplied', views.UserAppliedJobViewSet, basename='JobApply'
 router.register(r'traininglist', views.TrainingInfoListViewSet)
 router.register(r'searchinfo', views.SearchInfoViewSet)
 router.register(r'courseinfo', views.CourseInfoListViewSet)
+router.register(r'courseinfosearch', views.CourseInfoSearchViewSet, basename='CourseInfo')
 router.register(r'coursetype', views.CourseTypeListViewSet)
 router.register(r'jobvacancy', views.JobVacancyViewSet, basename='JobVacancyInfo')
 # Wire up our API using automatic URL routing.

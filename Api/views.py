@@ -439,6 +439,48 @@ class CourseInfoListViewSet(viewsets.ModelViewSet):
             return serializer.CourseDetailSerializer
 
 
+# list: course info search list
+class CourseInfoSearchViewSet(viewsets.ModelViewSet):
+    permission_classes = (permissions.AllowAny,)
+    serializer_class = serializer.CourseInfoListSerializer
+
+    def get_queryset(self):
+        ctype_id = None
+        course_title = None
+        course_form = None
+
+        if 'ctype_id' in self.request.query_params:
+            ctype_id = self.request.query_params["ctype_id"]
+        if 'course_title' in self.request.query_params:
+            course_title = self.request.query_params["course_title"]
+        if 'course_form' in self.request.query_params:
+            course_form = self.request.query_params["course_form"]
+
+
+        and_filter = Q()
+        and_filter.connector = 'AND'
+
+
+        if ctype_id:
+            print('course type id is : ', ctype_id)
+            and_filter.children.append(('ctype_id', ctype_id))
+
+        if course_title:
+            print('course title contains: ', course_title)
+            and_filter.children.append(('course_title__contains', course_title))
+
+        if course_form:
+            print('course form is: ', course_form)
+            and_filter.children.append(('course_form', course_form))
+
+        if and_filter is None:
+            queryset = models.CourseInfo.objects.all().order_by('-updated_on')
+        else:
+            queryset = models.CourseInfo.objects.filter(and_filter).order_by('-updated_on')
+        return queryset
+
+
+
 # list: course type list
 class CourseTypeListViewSet(viewsets.ModelViewSet):
     queryset = models.CourseType.objects.all().order_by('ctype_desc')
