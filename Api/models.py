@@ -154,6 +154,7 @@ class JobApply(models.Model):
     apply_comment = models.TextField(null=True)
     apply_status = models.CharField(max_length=1, default='0')  # 0:未查阅, 1:已保留，2：联系中，3：不合适
     pre_status = models.CharField(max_length=1, default='0')
+    updated_on = models.DateField(auto_now=True)
 
     def __str__(self):
         return 'user id:' + str(self.user_id) + '; job id:' + str(self.job_id)
