@@ -34,7 +34,8 @@ urlpatterns = [
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     path('api-token-auth/', views.CustomAuthToken.as_view()),
     path('smssender/', views.SMSSender.as_view()),
-    path('smssendercheck/', views.SMSSenderCheck.as_view()),
+    path('smssendercheck/', views.SenderCheck.as_view()),
+    path('emailsender/', views.EmailSender.as_view()),
     path('media/<path:file_name>', views.get_media)
 
 

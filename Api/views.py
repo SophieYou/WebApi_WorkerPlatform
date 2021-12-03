@@ -26,6 +26,9 @@ import logging
 #send SMS
 from aliyunsdkcore.client import AcsClient
 
+import smtplib
+from email.mime.text import MIMEText
+from email.header import Header
 
 # get a looger object
 logger = logging.getLogger(__name__)
@@ -115,17 +118,21 @@ class SMSSender(APIView):
             "To": response['To']
         })
 
-# SMS check
-class SMSSenderCheck(APIView):
+# SMS OR Email check
+class SenderCheck(APIView):
     permission_classes = (permissions.AllowAny,)
 
     def get(self, request, format=None):
-        m_tel = request.query_params['tel']
+        m_time = -1
+        m_tel = request.query_params['tel_or_email']
         m_code = request.query_params['code']
+        m_type = request.query_params['type']
+        if m_type == 'email':
+            m_time = -5
+
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M");
-        print(str(now))
-        now_1 = datetime.datetime.now()+datetime.timedelta(minutes=-5)
-        print(str(now_1))
+        now_1 = datetime.datetime.now()+datetime.timedelta(minutes=m_time)
+        print(now_1)
         vi = models.VerifyCodeInfo.objects.filter(tel_or_email= m_tel, verifycode=m_code, created_on__gte= now_1)
         print(vi)
         if vi.exists():
@@ -136,6 +143,55 @@ class SMSSenderCheck(APIView):
             return Response({
                 "ResponseCode": 'Fail'
             })
+
+
+# Email sender
+class EmailSender(APIView):
+    permission_classes = (permissions.AllowAny,)
+
+    def get(self, request, format=None):
+        receiver = request.query_params['email']
+        sender = os.environ.get('Email_Sender')
+        m_code = ClassWithGlobalFunction.get_random_num(6)
+
+        message = MIMEText('郵箱驗證碼：'+m_code +'; 請在5分鐘內輸入，認證郵箱！', 'plain', 'utf-8')
+        message['From'] = Header("HK Construction Career", 'utf-8')  # 发送者
+        message['To'] = Header(receiver, 'utf-8')  # 接收者
+
+        subject = 'HK Construction Career 驗證碼'
+        message['Subject'] = Header(subject, 'utf-8')
+
+
+        mail_host = "smtp.gmail.com"  # 设置服务器
+        mail_user = os.environ.get('Email_Sender') # 用户名
+        mail_pass = os.environ.get('Email_PWD') # 口令
+        print(mail_user +';'+mail_pass)
+        try:
+            smtpObj = smtplib.SMTP(mail_host,587)
+            #smtpObj.connect(mail_host, 587)  # 25 为 SMTP 端口号
+            smtpObj.ehlo()
+            smtpObj.starttls()
+            smtpObj.login(mail_user, mail_pass)
+            smtpObj.sendmail(sender, receiver, message.as_string())
+            print('Send email Successfully!')
+            models.VerifyCodeInfo.objects.filter(tel_or_email=receiver).delete()
+            vi = models.VerifyCodeInfo.objects.create(tel_or_email=receiver, verifycode=m_code)
+            vi.save()
+
+            return Response({
+                "ResponseCode": 'OK',
+                "ResponseDescription": 'Send email Successfully!'
+            })
+
+        except smtplib.SMTPException as e:
+            print(e)
+            print("Error: Cannot send email")
+            return Response({
+                "ResponseCode": 'Fail',
+                "ResponseDescription": 'Error: Cannot send email!'
+            })
+
+
 
 
 # create: new user

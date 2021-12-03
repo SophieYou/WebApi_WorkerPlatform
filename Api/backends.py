@@ -12,6 +12,7 @@ class CustomAuthBackend(ModelBackend):
     def authenticate(self, request, username=None, password=None, **kwargs):
         user = User.objects.get(username=username)
         v_code = False
+
         try:
             if 'verify_code' in request.data:
                 v_code = request.data["verify_code"]
@@ -27,7 +28,7 @@ class CustomAuthBackend(ModelBackend):
                 # check validate code here
                 now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M");
                 print(str(now))
-                now_1 = datetime.datetime.now() + datetime.timedelta(minutes=-5)
+                now_1 = datetime.datetime.now() + datetime.timedelta(minutes=-2)
                 print(str(now_1))
                 vi = models.VerifyCodeInfo.objects.filter(tel_or_email=username, verifycode=password, created_on__gte=now_1)
                 print(vi)
