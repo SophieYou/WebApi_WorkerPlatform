@@ -3,6 +3,7 @@ from rest_framework import routers
 from . import views
 
 router = routers.DefaultRouter()
+
 router.register(r'registeruser', views.RegisterUserViewSet)
 router.register(r'registercompany', views.RegisterCompanyViewSet)
 router.register(r'userprofile', views.UserProfileViewSet)
@@ -32,6 +33,8 @@ urlpatterns = [
     path('', include(router.urls)),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     path('api-token-auth/', views.CustomAuthToken.as_view()),
+    path('smssender/', views.SMSSender.as_view()),
+    path('smssendercheck/', views.SMSSenderCheck.as_view()),
     path('media/<path:file_name>', views.get_media)
 
 

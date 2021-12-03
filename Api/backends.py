@@ -1,6 +1,11 @@
+
+
 from django.contrib.auth.backends import ModelBackend
 import re
 from django.contrib.auth.models import User
+import datetime
+
+from Api import models
 
 
 class CustomAuthBackend(ModelBackend):
@@ -15,12 +20,21 @@ class CustomAuthBackend(ModelBackend):
 
         print("verify code is " + str(v_code))
         print("user is " + user.username)
-        print("user password is "+ password)
+        print("user password is " + password)
 
         if v_code:
             if user:
                 # check validate code here
-                return user
+                now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M");
+                print(str(now))
+                now_1 = datetime.datetime.now() + datetime.timedelta(minutes=-5)
+                print(str(now_1))
+                vi = models.VerifyCodeInfo.objects.filter(tel_or_email=username, verifycode=password, created_on__gte=now_1)
+                print(vi)
+                if vi.exists():
+                    return user
+                else:
+                    return None
             else:
                 return None
         else:

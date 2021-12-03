@@ -1,15 +1,19 @@
 #  from django.shortcuts import render
+import ast
 import datetime
 import hashlib
 import mimetypes
+import os
 
+from aliyunsdkcore.request import CommonRequest
 from django.core.files.storage import default_storage
 from django.db.models import Q
 from django.forms import model_to_dict
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework import permissions
+from rest_framework.views import APIView
 
 from . import serializer
 from . import models
@@ -18,6 +22,10 @@ from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from rest_framework import pagination
 import logging
+
+#send SMS
+from aliyunsdkcore.client import AcsClient
+
 
 # get a looger object
 logger = logging.getLogger(__name__)
@@ -57,6 +65,76 @@ class CustomAuthToken(ObtainAuthToken):
         else:
             return Response({
                 'token': token.key
+            })
+
+
+# SMS sender
+class SMSSender(APIView):
+    permission_classes = (permissions.AllowAny,)
+
+    def get(self, request, format=None):
+        m_tel = request.query_params['tel']
+
+        print(os.environ.get('SMS_AccessKey'))
+        print(os.environ.get('SMS_AccessSecret'))
+        client = AcsClient(
+            os.environ.get('SMS_AccessKey'),
+            os.environ.get('SMS_AccessSecret'),
+            "cn-hangzhou"
+        );
+
+        m_code = ClassWithGlobalFunction.get_random_num(6)
+        request = CommonRequest()
+        request.set_accept_format('json')
+        request.set_domain('dysmsapi.ap-southeast-1.aliyuncs.com')
+        request.set_method('POST')
+        request.set_protocol_type('https')  # https | http
+        request.set_version('2018-05-01')
+        request.set_action_name('SendMessageToGlobe')
+
+        request.add_query_param('RegionId', "cn-hangzhou")
+        request.add_query_param('To', m_tel)
+        request.add_query_param('Message', "登录验证码 " + m_code + "， 有效期为60秒。请勿将验证码告知他人。")
+        request.add_query_param('From', "workerlogin")
+
+        response = client.do_action_with_exception(request)
+        response = ast.literal_eval(response.decode('utf-8'))
+
+        print(response)
+
+        if response['ResponseCode'] == 'OK':
+            models.VerifyCodeInfo.objects.filter(tel_or_email=m_tel).delete()
+            vi = models.VerifyCodeInfo.objects.create(tel_or_email=m_tel, verifycode=m_code)
+            vi.save()
+
+        #return HttpResponse(str(response,encoding='utf-8'), content_type='application/json')
+        return Response({
+            "ResponseCode": response['ResponseCode'],
+            "ResponseDescription": response['ResponseDescription'],
+            "From": response['From'],
+            "To": response['To']
+        })
+
+# SMS check
+class SMSSenderCheck(APIView):
+    permission_classes = (permissions.AllowAny,)
+
+    def get(self, request, format=None):
+        m_tel = request.query_params['tel']
+        m_code = request.query_params['code']
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M");
+        print(str(now))
+        now_1 = datetime.datetime.now()+datetime.timedelta(minutes=-5)
+        print(str(now_1))
+        vi = models.VerifyCodeInfo.objects.filter(tel_or_email= m_tel, verifycode=m_code, created_on__gte= now_1)
+        print(vi)
+        if vi.exists():
+            return Response({
+                "ResponseCode": 'OK'
+            })
+        else:
+            return Response({
+                "ResponseCode": 'Fail'
             })
 
 
@@ -696,3 +774,6 @@ def get_file(file_name):
 def get_media(request, file_name):
     resp = get_file(file_name)
     return resp
+
+
+

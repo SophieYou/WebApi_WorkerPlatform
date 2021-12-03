@@ -415,3 +415,6 @@ class JobVacancyDetailSerializer(serializers.ModelSerializer):
         print(m_num)
         return JobInfoListSerializer(m_num, many=True, context={'request': self.context['request']}).data
 
+
+
+

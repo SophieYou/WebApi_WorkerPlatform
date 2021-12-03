@@ -1,4 +1,5 @@
 from . import models
+import random
 
 # global function
 class ClassWithGlobalFunction:
@@ -28,3 +29,13 @@ class ClassWithGlobalFunction:
             return None
 
 
+
+    # random number
+    def get_random_num(num):
+        str = ""
+        for i in range(num):
+            ch = chr(random.randrange(ord('0'),ord('9')+1))
+            str += ch
+
+        print ('random num is: '+str)
+        return str

@@ -8,7 +8,7 @@ from django.db import models
 class UserProfile(models.Model):
     user_id = models.AutoField(primary_key=True)
     user_auth = models.OneToOneField(User, on_delete=models.CASCADE)
-    user_tel = models.CharField(max_length=8)
+    user_tel = models.CharField(max_length=13)
     user_name = models.CharField(max_length=40, null=True)
     user_year = models.IntegerField(null=True)
     user_sex = models.CharField(max_length=1, null=True)  # F/M
@@ -77,7 +77,7 @@ class TrainingInfo(models.Model):
     region_id = models.ForeignKey('RegionInfo', on_delete=models.CASCADE)
     from_date = models.DateField()
     to_date = models.DateField()
-    training_tel = models.CharField(max_length=8)
+    training_tel = models.CharField(max_length=11)
     updated_on = models.DateField(auto_now=True)
 
     def __str__(self):
@@ -88,7 +88,7 @@ class TrainingInfo(models.Model):
 class SearchInfo(models.Model):
     search_id = models.AutoField(primary_key=True)
     contact_person = models.CharField(max_length=40)
-    contact_tel = models.CharField(max_length=8)
+    contact_tel = models.CharField(max_length=13)
     contact_email = models.CharField(max_length=40, null=True)
     search_text = models.TextField()
     search_status = models.BooleanField(default=False)
@@ -105,7 +105,7 @@ class CompanyInfo(models.Model):
     company_name = models.CharField(max_length=40)
     contact_person = models.CharField(max_length=40)
     # company_pwd = models.CharField(max_length=12, null=True)
-    contact_tel = models.CharField(max_length=8)
+    contact_tel = models.CharField(max_length=13)
     contact_email = models.CharField(max_length=40)
     company_year = models.IntegerField()
     company_detail = models.TextField()
@@ -211,7 +211,7 @@ class CourseInfo(models.Model):
     start_date = models.TextField(default='待定') # if null: 開班日期另作查詢
     course_req = models.TextField(null=True)
     course_detail = models.TextField(null=True)
-    course_tel = models.CharField(max_length=8)
+    course_tel = models.CharField(max_length=11)
     updated_on = models.DateField(auto_now=True)
     course_link = models.TextField(null=True)
 
@@ -236,3 +236,13 @@ class JobVacancyInfo(models.Model):
 
     def __str__(self):
         return str(self.vacancy_id)
+
+
+# login verify code info
+class VerifyCodeInfo(models.Model):
+    tel_or_email = models.CharField(max_length=40)
+    verifycode = models.CharField(max_length=6)
+    created_on = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return str(self.tel_or_email + ';' + self.verifycode)
