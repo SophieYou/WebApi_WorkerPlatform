@@ -23,7 +23,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework import pagination
 import logging
 
-#send SMS
+# send SMS
 from aliyunsdkcore.client import AcsClient
 
 import smtplib
@@ -44,7 +44,7 @@ class CustomAuthToken(ObtainAuthToken):
             if 'login_type' in request.data:
                 login_type = request.data['login_type']
         except Exception as e:
-            logger.info(e)
+            logger.error(e)
             pass
 
         logger.info("current login type: " + login_type)
@@ -77,9 +77,8 @@ class SMSSender(APIView):
 
     def get(self, request, format=None):
         m_tel = request.query_params['tel']
+        logger.info("send SMS to: "+m_tel)
 
-        print(os.environ.get('SMS_AccessKey'))
-        print(os.environ.get('SMS_AccessSecret'))
         client = AcsClient(
             os.environ.get('SMS_AccessKey'),
             os.environ.get('SMS_AccessSecret'),
@@ -98,25 +97,38 @@ class SMSSender(APIView):
         request.add_query_param('RegionId', "cn-hangzhou")
         request.add_query_param('To', m_tel)
         request.add_query_param('Message', "登录验证码 " + m_code + "， 有效期为60秒。请勿将验证码告知他人。")
-        request.add_query_param('From', "workerlogin")
+        request.add_query_param('From', "HK Construction Career")
 
         response = client.do_action_with_exception(request)
-        response = ast.literal_eval(response.decode('utf-8'))
 
-        print(response)
+        logger.info(str(response, encoding='utf-8'))
+
+        response = ast.literal_eval(response.decode('utf-8'))
 
         if response['ResponseCode'] == 'OK':
             models.VerifyCodeInfo.objects.filter(tel_or_email=m_tel).delete()
-            vi = models.VerifyCodeInfo.objects.create(tel_or_email=m_tel, verifycode=m_code)
-            vi.save()
+            try:
+                vi = models.VerifyCodeInfo.objects.create(tel_or_email=m_tel, verifycode=m_code)
+                vi.save()
+                logger.info("save SMS code to DB!")
+            except Exception as e:
+                logger.error("save SMS code to DB error; tel: "+m_tel + "; code: "+m_code)
+                logger.error(str(e))
+                return Response({
+                    "ResponseCode": "Error",
+                    "ResponseDescription": str(e),
+                    "From": response['From'],
+                    "To": response['To']
+                })
 
-        #return HttpResponse(str(response,encoding='utf-8'), content_type='application/json')
+        # return HttpResponse(str(response,encoding='utf-8'), content_type='application/json')
         return Response({
             "ResponseCode": response['ResponseCode'],
             "ResponseDescription": response['ResponseDescription'],
             "From": response['From'],
             "To": response['To']
         })
+
 
 # SMS OR Email check
 class SenderCheck(APIView):
@@ -131,15 +143,22 @@ class SenderCheck(APIView):
             m_time = -5
 
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M");
-        now_1 = datetime.datetime.now()+datetime.timedelta(minutes=m_time)
-        print(now_1)
-        vi = models.VerifyCodeInfo.objects.filter(tel_or_email= m_tel, verifycode=m_code, created_on__gte= now_1)
-        print(vi)
+        now_1 = datetime.datetime.now() + datetime.timedelta(minutes=m_time)
+
+        logger.info(
+            "sender check type is : " + m_type + "; from: " + m_tel + "; the verify code is: " + m_code +
+            "; date is " + str(now))
+
+        vi = models.VerifyCodeInfo.objects.filter(tel_or_email=m_tel, verifycode=m_code, created_on__gte=now_1)
+
+
         if vi.exists():
+            logger.info("sender check successfully!")
             return Response({
                 "ResponseCode": 'OK'
             })
         else:
+            logger.info("sender check fail! tel or email is "+m_tel+"; code is "+m_code+"; date is "+ str(now))
             return Response({
                 "ResponseCode": 'Fail'
             })
@@ -151,47 +170,56 @@ class EmailSender(APIView):
 
     def get(self, request, format=None):
         receiver = request.query_params['email']
+        logger.info("Send email check to: "+receiver)
+
         sender = os.environ.get('Email_Sender')
         m_code = ClassWithGlobalFunction.get_random_num(6)
 
-        message = MIMEText('郵箱驗證碼：'+m_code +'; 請在5分鐘內輸入，認證郵箱！', 'plain', 'utf-8')
+        message = MIMEText('郵箱驗證碼：' + m_code + '; 請在5分鐘內輸入，認證郵箱！', 'plain', 'utf-8')
         message['From'] = Header("HK Construction Career", 'utf-8')  # 发送者
         message['To'] = Header(receiver, 'utf-8')  # 接收者
 
         subject = 'HK Construction Career 驗證碼'
         message['Subject'] = Header(subject, 'utf-8')
 
-
         mail_host = "smtp.gmail.com"  # 设置服务器
-        mail_user = os.environ.get('Email_Sender') # 用户名
-        mail_pass = os.environ.get('Email_PWD') # 口令
-        print(mail_user +';'+mail_pass)
+        mail_user = os.environ.get('Email_Sender')  # 用户名
+        mail_pass = os.environ.get('Email_PWD')  # 口令
+
         try:
-            smtpObj = smtplib.SMTP(mail_host,587)
-            #smtpObj.connect(mail_host, 587)  # 25 为 SMTP 端口号
+            smtpObj = smtplib.SMTP(mail_host, 587)
+            # smtpObj.connect(mail_host, 587)  # 25 为 SMTP 端口号
             smtpObj.ehlo()
             smtpObj.starttls()
             smtpObj.login(mail_user, mail_pass)
             smtpObj.sendmail(sender, receiver, message.as_string())
-            print('Send email Successfully!')
-            models.VerifyCodeInfo.objects.filter(tel_or_email=receiver).delete()
-            vi = models.VerifyCodeInfo.objects.create(tel_or_email=receiver, verifycode=m_code)
-            vi.save()
+            logger.info("Send email check successfully!")
 
-            return Response({
-                "ResponseCode": 'OK',
-                "ResponseDescription": 'Send email Successfully!'
-            })
+            try:
+                models.VerifyCodeInfo.objects.filter(tel_or_email=receiver).delete()
+                vi = models.VerifyCodeInfo.objects.create(tel_or_email=receiver, verifycode=m_code)
+                vi.save()
+                logger.info("Save email code to DB!")
+                return Response({
+                    "ResponseCode": 'OK',
+                    "ResponseDescription": 'Send email Successfully!'
+                })
+            except Exception as e:
+                logger.error("save email code to DB error; email: " + receiver + "; code: " + m_code)
+                logger.error(str(e))
+                return Response({
+                    "ResponseCode": 'Fail',
+                    "ResponseDescription": 'Error: save email code to DB error!'
+                })
+
 
         except smtplib.SMTPException as e:
-            print(e)
-            print("Error: Cannot send email")
+            logger.error("send email check error; email: " + receiver)
+            logger.error(str(e))
             return Response({
                 "ResponseCode": 'Fail',
                 "ResponseDescription": 'Error: Cannot send email!'
             })
-
-
 
 
 # create: new user
@@ -217,7 +245,6 @@ class RegisterUserViewSet(viewsets.ModelViewSet):
 
         try:
             u_check = request.data["check"]
-            print('check telephone')
             logger.info('check telephone before register')
         except Exception as e:
             logger.info(e)
@@ -242,6 +269,7 @@ class RegisterUserViewSet(viewsets.ModelViewSet):
             m_serializer.is_valid(raise_exception=True)
             self.perform_create(m_serializer)
             headers = self.get_success_headers(m_serializer.data)
+            logger.info("register user successfully! tel is: "+u_tel)
             return Response(m_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
@@ -249,7 +277,6 @@ class RegisterUserViewSet(viewsets.ModelViewSet):
 # update: user profile (include set password)
 class UserProfileViewSet(viewsets.ModelViewSet):
     queryset = models.UserProfile.objects.all().order_by('user_id')
-    # serializer_class = serializer.UserProfileSerializer
     filterset_fields = ('user_id', 'user_tel')
     permission_classes = (permissions.IsAuthenticated,)
 
@@ -278,7 +305,6 @@ class NewsInfoViewSet(viewsets.ModelViewSet):
     permission_classes = (permissions.AllowAny,)
 
     def get_serializer_class(self):
-        print(self.action)
         if self.action == 'list':
             return serializer.NewsInfoListSerializer
         else:
@@ -286,7 +312,6 @@ class NewsInfoViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         topnum = self.request.query_params.get('topnum')
-        print(topnum)
         if topnum:
             # list top num news list
             self.queryset = models.NewsInfo.objects.all().order_by('-post_date')[:int(topnum)]
@@ -503,9 +528,12 @@ class JobFavorViewSet(viewsets.ModelViewSet):
 # list/retrieve: company info
 # update: company profile (include set password)
 class CompanyInfoViewSet(viewsets.ModelViewSet):
-    queryset = models.CompanyInfo.objects.all().order_by('company_id')
     filterset_fields = ('contact_tel', 'contact_email', 'company_id')
     permission_classes = (permissions.IsAuthenticated,)
+
+    def get_queryset(self):
+        c_id = ClassWithGlobalFunction.get_companyid(self.request.user)
+        return models.CompanyInfo.objects.filter(company_id=c_id)
 
     def get_serializer_class(self):
         print(self.action)
@@ -590,10 +618,8 @@ class CourseInfoSearchViewSet(viewsets.ModelViewSet):
         if 'course_form' in self.request.query_params:
             course_form = self.request.query_params["course_form"]
 
-
         and_filter = Q()
         and_filter.connector = 'AND'
-
 
         if ctype_id:
             print('course type id is : ', ctype_id)
@@ -612,7 +638,6 @@ class CourseInfoSearchViewSet(viewsets.ModelViewSet):
         else:
             queryset = models.CourseInfo.objects.filter(and_filter).order_by('-updated_on')
         return queryset
-
 
 
 # list: course type list
@@ -801,7 +826,7 @@ def get_file(file_name):
     f = None
     try:
         print(file_name)
-        logger.info('open file: '+ file_name)
+        logger.info('open file: ' + file_name)
         f = default_storage.open(file_name, 'rb+')
     except Exception as e:
         logger.error(e)
@@ -830,6 +855,3 @@ def get_file(file_name):
 def get_media(request, file_name):
     resp = get_file(file_name)
     return resp
-
-
-
