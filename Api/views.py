@@ -52,7 +52,11 @@ class CustomAuthToken(ObtainAuthToken):
         m_serializer = self.serializer_class(data=request.data, context={'request': request})
         m_serializer.is_valid(raise_exception=True)
         user = m_serializer.validated_data['user']
-        token, created = Token.objects.get_or_create(user=user)
+
+        Token.objects.filter(user=user).delete()
+        token = Token.objects.create(user=user)
+        token.save()
+
         if login_type == 'worker':
             u_id = ClassWithGlobalFunction.get_userid(user)
             return Response({
@@ -212,7 +216,6 @@ class EmailSender(APIView):
                     "ResponseDescription": 'Error: save email code to DB error!'
                 })
 
-
         except smtplib.SMTPException as e:
             logger.error("send email check error; email: " + receiver)
             logger.error(str(e))
@@ -256,14 +259,14 @@ class RegisterUserViewSet(viewsets.ModelViewSet):
             logger.info('Fail: This telephone has been registered')
             return Response({'Fail: This telephone has been registered'}, status=status.HTTP_302_FOUND)
         elif u_check:
-            logger.info('his telephone has not been registered')
+            logger.info('Check: This telephone has not been registered')
             return Response({'This telephone has not been registered'}, status=status.HTTP_200_OK)
         else:
             u_user = models.User.objects.create(username=u_tel)
             if u_pwd and u_user:
                 u_user.set_password(u_pwd)
                 u_user.save()
-
+            logger.info('Create an auth user, auth user id is '+u_user.id)
             request.data["user_auth"] = u_user.id
             m_serializer = self.get_serializer(data=request.data)
             m_serializer.is_valid(raise_exception=True)
@@ -407,18 +410,6 @@ class JobSearchViewSet(viewsets.ModelViewSet):
         queryset = models.JobInfo.objects.filter(m_filter).order_by('-post_date')
         return queryset
 
-    '''
-    def create(self, request, *args, **kwargs):
-        
-        # data = list(self.get_queryset().values())
-        # return JsonResponse(data, safe=False)
-        
-        m_serializer = self.serializer_class(self.get_queryset(), many=True, context={'request': request})
-        headers = self.get_success_headers(m_serializer.data)
-        return Response(m_serializer.data, status=status.HTTP_200_OK, headers=headers)
-    '''
-
-
 # list: all region
 class RegionInfoViewSet(viewsets.ModelViewSet):
     queryset = models.RegionInfo.objects.all().order_by('region_upper')
@@ -445,8 +436,6 @@ class BenefitListViewSet(viewsets.ModelViewSet):
 # list: all applied job
 # create or update applied job
 class JobApplyViewSet(viewsets.ModelViewSet):
-    # queryset = models.JobApply.objects.all().order_by('-created_on')
-    # serializer_class = serializer.JobApplyListSerializer
     filterset_fields = ('job_id', 'user_id')
     permission_classes = (permissions.IsAuthenticated,)
 
@@ -482,7 +471,6 @@ class JobApplyViewSet(viewsets.ModelViewSet):
 # list: all favor job
 # create or update favor job
 class JobFavorViewSet(viewsets.ModelViewSet):
-    # queryset = models.JobFavor.objects.all().filter(is_deleted=False).order_by('-created_on')
     filterset_fields = ('job_id', 'user_id')
     permission_classes = (permissions.IsAuthenticated,)
 
@@ -501,7 +489,7 @@ class JobFavorViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         u_id = ClassWithGlobalFunction.get_userid(self.request.user)
         a_job = models.JobFavor.objects.filter(user_id=u_id, job_id=request.data["job_id"]).values()
-        print(a_job)
+
         if a_job.exists():
             a_obj = models.JobFavor.objects.get(id=a_job[0]['id'])
             a_obj.is_deleted = False
@@ -515,7 +503,6 @@ class JobFavorViewSet(viewsets.ModelViewSet):
             headers = self.get_success_headers(m_serializer.data)
             return Response(m_serializer.data, status=status.HTTP_200_OK, headers=headers)
 
-            # return Response({'Fail: This job has been added to favoriate'}, status=status.HTTP_302_FOUND)
         else:
             request.data['user_id'] = u_id
             m_serializer = self.get_serializer(data=request.data)
@@ -829,8 +816,7 @@ def get_file(file_name):
         logger.info('open file: ' + file_name)
         f = default_storage.open(file_name, 'rb+')
     except Exception as e:
-        logger.error(e)
-        logger.error('error in open')
+        logger.error('error in open file '+ file_name+';error: '+ str(e))
         return resp
 
     content_type, _ = mimetypes.guess_type(file_name)
@@ -847,7 +833,7 @@ def get_file(file_name):
     try:
         resp["Last-Modified"] = default_storage.get_modified_time(file_name).strftime('%a, %d %b %Y %H:%M:%S GMT')
     except Exception as e:
-        logger.error(e)
+        logger.error('error when storage file '+file_name+';error is :'+str(e))
         pass
     return resp
 
