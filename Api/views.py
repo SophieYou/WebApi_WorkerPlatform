@@ -736,6 +736,9 @@ class CompanyJobSearchViewSet(viewsets.ModelViewSet):
 
         if 'job_status' in self.request.query_params:
             job_status = self.request.query_params['job_status']
+            if '[' and ']' in job_status:
+                job_status = eval(job_status)
+            print(job_status)
 
         and_filter = Q()
         and_filter.connector = 'AND'
@@ -752,7 +755,7 @@ class CompanyJobSearchViewSet(viewsets.ModelViewSet):
             and_filter.children.append(('region_id__in', region_id))
         if job_status:
             print('job status: ', job_status)
-            and_filter.children.append(('job_status', job_status))
+            and_filter.children.append(('job_status__in', job_status))
 
         queryset = models.JobInfo.objects.filter(and_filter).order_by('-post_date')
         return queryset
