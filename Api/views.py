@@ -179,7 +179,7 @@ class EmailSender(APIView):
         sender = os.environ.get('Email_Sender')
         m_code = ClassWithGlobalFunction.get_random_num(6)
 
-        message = MIMEText('郵箱驗證碼：' + m_code + '; 請在5分鐘內輸入，認證郵箱！', 'plain', 'utf-8')
+        message = MIMEText('郵箱驗證碼：' + str(m_code) + '; 請在5分鐘內輸入，認證郵箱！', 'plain', 'utf-8')
         message['From'] = Header("HK Construction Career", 'utf-8')  # 发送者
         message['To'] = Header(receiver, 'utf-8')  # 接收者
 
@@ -209,7 +209,7 @@ class EmailSender(APIView):
                     "ResponseDescription": 'Send email Successfully!'
                 })
             except Exception as e:
-                logger.error("save email code to DB error; email: " + receiver + "; code: " + m_code)
+                logger.error("save email code to DB error; email: " + str(receiver) + "; code: " + str(m_code))
                 logger.error(str(e))
                 return Response({
                     "ResponseCode": 'Fail',
@@ -217,7 +217,7 @@ class EmailSender(APIView):
                 })
 
         except smtplib.SMTPException as e:
-            logger.error("send email check error; email: " + receiver)
+            logger.error("send email check error; email: " + str(receiver))
             logger.error(str(e))
             return Response({
                 "ResponseCode": 'Fail',
@@ -234,13 +234,13 @@ class RegisterUserViewSet(viewsets.ModelViewSet):
     # create a new user(register)
     def create(self, request, *args, **kwargs):
         u_tel = request.data["user_tel"]
-        logger.info('register tel: ' + u_tel)
+        logger.info('register tel: ' + str(u_tel))
 
         u_pwd = None
         u_check = False
         try:
             u_pwd = request.data["user_pwd"]
-            logger.info('register password: ' + u_pwd)
+            logger.info('register password: ' + str(u_pwd))
         except Exception as e:
             logger.info(e)
             logger.info('register without password')
@@ -266,13 +266,13 @@ class RegisterUserViewSet(viewsets.ModelViewSet):
             if u_pwd and u_user:
                 u_user.set_password(u_pwd)
                 u_user.save()
-            logger.info('Create an auth user, auth user id is '+u_user.id)
+            logger.info('Create an auth user, auth user id is '+str(u_user.id))
             request.data["user_auth"] = u_user.id
             m_serializer = self.get_serializer(data=request.data)
             m_serializer.is_valid(raise_exception=True)
             self.perform_create(m_serializer)
             headers = self.get_success_headers(m_serializer.data)
-            logger.info("register user successfully! tel is: "+u_tel)
+            logger.info("register user successfully! tel is: "+str(u_tel))
             return Response(m_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
