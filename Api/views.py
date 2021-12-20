@@ -101,7 +101,7 @@ class SMSSender(APIView):
         request.add_query_param('RegionId', "cn-hangzhou")
         request.add_query_param('To', m_tel)
         request.add_query_param('Message', "登录验证码 " + m_code + "， 有效期为60秒。请勿将验证码告知他人。")
-        request.add_query_param('From', "HK Construction Career")
+        request.add_query_param('From', "HKC Career")
 
         response = client.do_action_with_exception(request)
 
