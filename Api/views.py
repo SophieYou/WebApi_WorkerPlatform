@@ -540,13 +540,30 @@ class RegisterCompanyViewSet(viewsets.ModelViewSet):
 
     # create a new company(register)
     def create(self, request, *args, **kwargs):
-        c_tel = request.data["contact_tel"]
         c_email = request.data["contact_email"]
+        u_check = False
+
+        try:
+            u_check = request.data["check"]
+            logger.info('check telephone before register')
+        except Exception as e:
+            logger.info(e)
+            pass
+
+        if u_check:
+            comp = self.queryset.filter(contact_email=c_email)
+            if comp.exists():
+                return Response({'This company email has been registered'}, status=status.HTTP_302_FOUND)
+            else:
+                return Response({'This company email has not been registered'}, status=status.HTTP_200_OK)
+
+
         c_pwd = request.data["company_pwd"]
-        comp = self.queryset.filter(contact_tel=c_tel) | self.queryset.filter(contact_email=c_email)
+        c_tel = request.data["contact_tel"]
+        comp = self.queryset.filter(contact_email=c_email)
         print(comp)
         if comp.exists():
-            return Response({'This company (telephone or email) has been registered'}, status=status.HTTP_302_FOUND)
+            return Response({'This company email has been registered'}, status=status.HTTP_302_FOUND)
         else:
             c_user = models.User.objects.create(username=c_email)
             c_user.set_password(c_pwd)
