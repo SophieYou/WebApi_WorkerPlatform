@@ -10,7 +10,10 @@ from Api import models
 
 class CustomAuthBackend(ModelBackend):
     def authenticate(self, request, username=None, password=None, **kwargs):
-        user = User.objects.get(username=username)
+        user = User.objects.filter(username=username).first()
+        if user is None:
+            return None
+
         v_code = False
 
         try:
