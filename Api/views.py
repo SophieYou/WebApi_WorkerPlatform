@@ -179,7 +179,7 @@ class EmailSender(APIView):
         sender = os.environ.get('Email_Sender')
         m_code = ClassWithGlobalFunction.get_random_num(6)
 
-        message = MIMEText('郵箱驗證碼：' + str(m_code) + '; 請在5分鐘內輸入，認證郵箱！', 'plain', 'utf-8')
+        message = MIMEText('香港建造業平台註冊：郵箱驗證碼：' + str(m_code) + '; 請在5分鐘內輸入，驗證郵箱！', 'plain', 'utf-8')
         message['From'] = Header("HK Construction Career", 'utf-8')  # 发送者
         message['To'] = Header(receiver, 'utf-8')  # 接收者
 
@@ -553,9 +553,9 @@ class RegisterCompanyViewSet(viewsets.ModelViewSet):
         if u_check:
             comp = self.queryset.filter(contact_email=c_email)
             if comp.exists():
-                return Response({'This company email has been registered'}, status=status.HTTP_302_FOUND)
+                return Response({'此郵箱已被註冊！'}, status=status.HTTP_302_FOUND)
             else:
-                return Response({'This company email has not been registered'}, status=status.HTTP_200_OK)
+                return Response({'此郵箱尚未註冊'}, status=status.HTTP_200_OK)
 
 
         c_pwd = request.data["company_pwd"]
